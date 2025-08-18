@@ -1,0 +1,10 @@
+[project]
+name = "api"
+version = "0.1.0"
+description = "This is a FastAPI App that demonstrate CRUD operations within memory and has Dockerfile for building image."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.12",
+    "uvicorn>=0.34.3",
+]
