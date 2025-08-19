@@ -3,6 +3,7 @@ import uvicorn
 from pydantic import BaseModel
 from typing import List, Optional
 from uuid import UUID, uuid4
+import os
 
 class Tea(BaseModel):
     id: Optional[UUID] = None
@@ -53,7 +54,8 @@ def delete_tea(tea_id: UUID):
     return {"error": "Tea not found"}, 404
 
 def main():
-    uvicorn.run(app, host="localhost", port=8000)
+    port = int(os.environ.get("PORT", 8000))  # Default to 8000 for local dev
+    uvicorn.run(app, host="localhost", port=port)
 
 
 if __name__ == "__main__":
