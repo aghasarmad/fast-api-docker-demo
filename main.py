@@ -1,61 +1,64 @@
-from fastapi import FastAPI
-import uvicorn
-from pydantic import BaseModel
-from typing import List, Optional
-from uuid import UUID, uuid4
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy.orm import Session
+from uuid import UUID
 import os
+import uvicorn
+import models, schemas, database
 
-class Tea(BaseModel):
-    id: Optional[UUID] = None
-    name: str
-    origin: Optional[str] = None
-
+# Initialize the API
 app = FastAPI()
 
-teas: List[Tea] = []
 
-# @app.get("/")
-# def read_root():
-#     return {"message": "Hello, World!"}
+# ----------- CRUD Routes ----------- #
 
-@app.get("/teas")
-def get_teas():
-    return teas
+@app.post("/teas", response_model=schemas.TeaRead)
+def create_tea(tea: schemas.TeaCreate, db: Session = Depends(database.get_db)):
+    db_tea = models.TeaDB(name=tea.name, origin=tea.origin)
+    db.add(db_tea)
+    db.commit()
+    db.refresh(db_tea)
+    return db_tea
 
-@app.post("/teas")
-def create_tea(tea: Tea):
-    tea.id = uuid4()  # Assign a new UUID to the tea
-    teas.append(tea)
+
+@app.get("/teas", response_model=list[schemas.TeaRead])
+def get_teas(db: Session = Depends(database.get_db)):
+    return db.query(models.TeaDB).all()
+
+
+@app.get("/teas/{tea_id}", response_model=schemas.TeaRead)
+def get_tea(tea_id: UUID, db: Session = Depends(database.get_db)):
+    tea = db.query(models.TeaDB).filter(models.TeaDB.id == tea_id).first()
+    if not tea:
+        raise HTTPException(status_code=404, detail="Tea not found")
     return tea
 
-@app.get("/teas/{tea_id}")
-def get_tea(tea_id: UUID):
-    for tea in teas:
-        if tea.id == tea_id:
-            return tea
-    return {"error": "Tea not found"}, 404
 
-@app.put("/teas/{tea_id}")
-def update_tea(tea_id: UUID, tea: Tea):
-    for index, existing_tea in enumerate(teas):
-        if existing_tea.id == tea_id:
-            #teas[index] = tea
-            updated_tea = existing_tea.model_copy(update=tea.model_dump(exclude_unset=True))
-            teas[index] = updated_tea
-            return updated_tea
-    return {"error": "Tea not found"}, 404
+@app.put("/teas/{tea_id}", response_model=schemas.TeaRead)
+def update_tea(tea_id: UUID, tea_update: schemas.TeaCreate, db: Session = Depends(database.get_db)):
+    tea = db.query(models.TeaDB).filter(models.TeaDB.id == tea_id).first()
+    if not tea:
+        raise HTTPException(status_code=404, detail="Tea not found")
+
+    tea.name = tea_update.name
+    tea.origin = tea_update.origin
+    db.commit()
+    db.refresh(tea)
+    return tea
+
 
 @app.delete("/teas/{tea_id}")
-def delete_tea(tea_id: UUID):
-    for index, tea in enumerate(teas):
-        if tea.id == tea_id:
-            deleted = teas.pop(index)
-            return deleted
-    return {"error": "Tea not found"}, 404
+def delete_tea(tea_id: UUID, db: Session = Depends(database.get_db)):
+    tea = db.query(models.TeaDB).filter(models.TeaDB.id == tea_id).first()
+    if not tea:
+        raise HTTPException(status_code=404, detail="Tea not found")
+    db.delete(tea)
+    db.commit()
+    return {"message": "Tea deleted"}
+
 
 def main():
-    port = int(os.environ.get("PORT", 8000))  # Default to 8000 for local dev
-    uvicorn.run(app, host="localhost", port=port)
+    port = int(os.environ.get("PORT", 8080)) 
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":
