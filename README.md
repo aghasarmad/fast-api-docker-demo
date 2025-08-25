@@ -1,7 +1,7 @@
 # fast-api-docker-demo
 
 ## Features
-- **Demo GCP URL**: [text](https://fastapi-service-613053021884.us-central1.run.app/docs)
+- **Demo GCP URL**: [Click for Demo](https://fastapi-service-613053021884.us-central1.run.app/docs)
 - **FastAPI Application**: Built using FastAPI for high performance and easy API development.
 - **Dockerized**: Includes a Dockerfile for containerized deployment and easy environment setup.
 - **Automatic API Docs**: Interactive documentation available via Swagger UI and ReDoc.
